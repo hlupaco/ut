@@ -1,0 +1,75 @@
+# Let's Encrypt + ISPConfig 3 - webroot way
+
+## Install
+
+```
+useradd -m letsencrypt
+cd /home/letsencrypt
+mkdir -p data/{etc,lib,log,webroot}
+```
+
+```
+wget https://dl.eff.org/certbot-auto
+chmod a+x certbot-auto
+```
+
+## Certbot configuration
+
+create `domain.ini` and change `email` and `domains` options
+
+```
+# https://letsencrypt.readthedocs.io/en/latest/using.html#configuration-file
+
+# This is an example of the kind of things you can do in a configuration file.
+# All flags used by the client can be configured here. Run Certbot with
+# "--help" to learn more about the available options.
+
+# Use a 4096 bit RSA key instead of 2048
+rsa-key-size = 4096
+
+# Uncomment and update to register with the specified e-mail address
+email = domains@usertechnologies.com
+
+# Uncomment and update to generate certificates for the specified
+# domains.
+domains = DOMAIN.utdigit.com
+
+# Uncomment to use a text interface instead of ncurses
+text = True
+
+# Uncomment to use the webroot authenticator. Replace webroot-path with the
+# path to the public_html / webroot folder being served by your web server.
+authenticator = webroot
+webroot-path = data/webroot
+
+# staging server
+#server = https://acme-staging.api.letsencrypt.org/directory
+# production server 
+server = https://acme-v01.api.letsencrypt.org/directory
+config-dir = data/etc
+logs-dir = data/log
+work-dir = data/lib
+agree-tos = true
+
+# Don't share your e-mail address with EFF
+no-eff-email
+```
+
+create symlinks for webroot
+
+```
+ln -sf /home/letsencrypt/data/webroot/.well-known /var/www/DOMAIN.utdigit.com/web/.well-known
+```
+
+run certificate generation
+
+```
+./certbot-auto -c domain.ini certonly
+```
+
+configure ispconfig to use certificate 
+
+- check Domain/SSL checkbox
+- insert content of `/home/letsencrypt/data/etc/live/DOMAIN/privkey.pem` to SSL/SSL Key
+- insert content of `/home/letsencrypt/data/etc/live/DOMAIN/cert.pem` to SSL/SSL Cerfificate
+- insert content of `/home/letsencrypt/data/etc/live/DOMAIN/fullchain.pem` to SSL/SSL Bundle
