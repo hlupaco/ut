@@ -3,7 +3,8 @@
 
 DOMAIN=mm.utdigit.com
 SSHPW='318250' #user 'webadmin', POZOR max delka je 10 charu
-JC="false" #set "true" if this server should be added to JC
+#JC="false" #set "true" if this server should be added to JC
+#EDIT: JC doesnt work this way, the hash changes :(
 MYSQL_ROOTPW='changeme' #leave empty for default '318250'
 ISPC_ADMINPW='admin' #TODO: maybe change this so default pw is something else O_O
 IP="" #write "assign" to assign an elastic IP, and grab new one if there is no free
@@ -71,9 +72,12 @@ GetTempFile () {
 
 ################################################################
 
+log="/home/ubuntu/USERDATA_WORKING"
 
 
-apt install awscli
+apt -y install awscli
+
+echo Installed awscli >>$log
 
 #trick from https://stackoverflow.com/questions/625644/find-out-the-instance-id-from-within-an-ec2-machine
 #INST_ID=$(wget -q -O - http://169.254.169.254/latest/meta-data/instance-id)
@@ -113,6 +117,8 @@ fi
 ##        that can be used for testing, try to associate this specific IP if possible
 #fi
 
+echo IP setup done >>$log
+
 
 
 #DNS Route53
@@ -129,9 +135,12 @@ USER='ubuntu'
 
 #yarn: https://yarnpkg.com/lang/en/docs/install/#linux-tab
 
-if [ "$JC" = "true" ] ; then
-        curl --silent --show-error --header 'x-connect-key: 7d71eb7fbdbeeaa2bde0424f877cb5ce2ffe8e6b' https://kickstart.jumpcloud.com/Kickstart | sudo bash
-fi
+#if [ "$JC" = "true" ] ; then
+#        curl --silent --show-error --header 'x-connect-key: 7d71eb7fbdbeeaa2bde0424f877cb5ce2ffe8e6b' https://kickstart.jumpcloud.com/Kickstart | sudo bash
+#fi
+#echo JC set >>$log
+
+
 
 #toto zmenit? az podle prani Kofa
 composer self-update 1.1.3
@@ -140,13 +149,17 @@ apt-get -y update
 apt-get -y upgrade
 apt-get -y autoremove
 
-apt install unattended-upgrades
+apt-get -y install unattended-upgrades
+
+echo apt update, upgrade and autoremove done >>$log
 
 
 #for some reason this is needed or ispconfig fcks up
-apt -y install mysql-server
+apt-get -y install mysql-server
 #echo "[mysqld]" >> /etc/mysql/my.cnf
 #echo 'sql-mode="NO_ENGINE_SUBSTITUTION"' >> /etc/mysql/my.cnf
+
+echo apt install mysql-server done >>$log
 
 
 
@@ -175,6 +188,9 @@ chmod u+x ISPC_update.exp
 ./ISPC_update.exp
 rm ./ISPC_update.exp
 
+echo ISPC updated >>$log
+
+
 
 #find / -name phpmyadmin | xargs chgrp -R www-data
 #find / -name phpmyadmin | xargs chmod -R g+w
@@ -202,6 +218,8 @@ fi
 #change ISPC admin password
 echo "use dbispconfig; UPDATE sys_user SET passwort = md5('$ISPC_ADMINPW') WHERE username = 'admin' ;" | mysql -u root -p"$MYSQL_ROOTPW"
 
+echo MySQL root pw changed >>$log
+
 
 
 #make user webadmin overall with group www-data
@@ -221,17 +239,37 @@ usermod -a -G www-data webadmin
 SSHPW_CRYPT="$(./cryptpw.exp | tail -n1)"
 usermod -p "'$SSHPW_CRYPT'" webadmin
 
+echo Webadmin created >>$log
+
+
+
 #this caused 502, but careful - be patient, server may sometimes need even 15-30 minutes to start and get to this phase
 FPMCONF="/opt/php-7.1/etc/php-fpm.d/www.conf"
 cat "$FPMCONF" | sed 's#^listen.*#listen = /var/lib/php7.0-fpm/ispconfig.sock#' > /tmp/temp; mv /tmp/temp "$FPMCONF"
 
+echo 502 error should be gone >>$log
+
+
+
 systemctl stop    php-7.1-fpm
+systemctl disable php-7.1-fpm
 systemctl start   php7.0-fpm
+systemctl enable  php7.0-fpm
 systemctl restart nginx
 
+#TODO: 502 se vraci po kazdem restartu - nastavit systemctl disable php-7.1-fpm ?
+
+echo nginx restarted >>$log
+
+
+
 #TODO: cleanup if needed
-apt remove awscli
-apt autoremove
+apt -y remove awscli
+apt -y autoremove
+
+echo cleanup done >>$log
+
+
 
 rm /tmp/USERDATA_WORKING #just making sure here :D
 #TODO: log file of this script?
