@@ -234,12 +234,11 @@ expect eof' > cryptpw.exp
 
 chmod u+x cryptpw.exp
 
-useradd webadmin
-usermod -a -G www-data webadmin
-SSHPW_CRYPT="$(./cryptpw.exp | tail -n1)"
-usermod -p "'$SSHPW_CRYPT'" webadmin
-
-echo Webadmin created >>$log
+#useradd webadmin
+#usermod -a -G www-data webadmin
+#SSHPW_CRYPT="$(./cryptpw.exp | tail -n1)"
+#usermod -p "'$SSHPW_CRYPT'" webadmin
+#echo Webadmin created >>$log
 
 
 
@@ -260,6 +259,8 @@ systemctl restart nginx
 #TODO: 502 se vraci po kazdem restartu - nastavit systemctl disable php-7.1-fpm ?
 
 echo nginx restarted >>$log
+
+#TODO: automatically add letsencrypt cert for the domain?
 
 
 
